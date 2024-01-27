@@ -1,4 +1,11 @@
-import { intArg, makeSchema, objectType, asNexusMethod, nonNull } from "nexus";
+import {
+  intArg,
+  makeSchema,
+  objectType,
+  asNexusMethod,
+  nonNull,
+  stringArg,
+} from "nexus";
 import { DateTimeResolver } from "graphql-scalars";
 import { Context } from "./context";
 import path from "path";
@@ -30,8 +37,20 @@ export const schema = makeSchema({
       definition(t) {
         t.nonNull.field("createTask", {
           type: "Task",
-          args: {},
-          resolve: (_, args, ctx: Context) => {},
+          args: {
+            title: nonNull(stringArg()),
+            description: stringArg(),
+            status: nonNull(stringArg()),
+          },
+          resolve: (_, args, ctx: Context) => {
+            return ctx.prisma.task.create({
+              data: {
+                title: args.title,
+                description: args.description,
+                status: args.status,
+              },
+            });
+          },
         });
       },
     }),
