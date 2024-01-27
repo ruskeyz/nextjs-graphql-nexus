@@ -19,10 +19,17 @@ export default function Task() {
   const taskId =
     typeof query["taskId"] === "string" ? query["taskId"] : undefined;
 
-  const { data } = useQuery(GET_TASK, {
+  const { data, loading, error } = useQuery(GET_TASK, {
     variables: taskId ? { id: Number(taskId) } : undefined,
   });
+  if (loading) {
+    return <h2>Loading...</h2>;
+  }
 
+  if (error) {
+    console.error(error);
+    return null;
+  }
   if (!data) {
     return null;
   }
