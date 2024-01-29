@@ -23,8 +23,8 @@ export default function Home() {
         </p>
 
         <p className={styles.description}>
-          <a href="/task/1" target="_blank">
-            First task
+          <a className={styles.link} href="/task/">
+            Task Manager, solution
           </a>
         </p>
       </main>
