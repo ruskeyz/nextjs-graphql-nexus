@@ -1,7 +1,8 @@
 import Head from "next/head";
 import styles from "../styles/Home.module.css";
 import { graphql } from "../gql";
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
+import { useState } from "react";
 
 const GET_ALL_TASKS = graphql(`
   query GetAllTasks {
@@ -14,20 +15,76 @@ const GET_ALL_TASKS = graphql(`
   }
 `);
 
-export default function Home() {
-  const { data, loading, error } = useQuery(GET_ALL_TASKS);
+const CREATE_TASK = graphql(`
+  mutation CreateTask($title: String!, $status: String!, $description: String) {
+    createTask(title: $title, status: $status, description: $description) {
+      title
+      status
+      description
+    }
+  }
+`);
 
-  if (loading) {
+const STATUS_OPTIONS = [
+  {
+    label: "To Do",
+    value: "TO_DO",
+  },
+  {
+    label: "In progress",
+    value: "IN_PROGRESS",
+  },
+  {
+    label: "Done",
+    value: "DONE",
+  },
+];
+
+export default function Home() {
+  const [title, setTitle] = useState("");
+  const [status, setStatus] = useState(STATUS_OPTIONS[0].value);
+  const [description, setDescription] = useState("");
+  const {
+    data: taskData,
+    loading: loadingTask,
+    error: errorTask,
+  } = useQuery(GET_ALL_TASKS);
+  const [
+    createTask,
+    {
+      data: deleteTaskData,
+      loading: loadingDeleteTask,
+      error: errorDeleteTask,
+    },
+  ] = useMutation(CREATE_TASK, {
+    refetchQueries: [GET_ALL_TASKS],
+  });
+
+  if (loadingTask) {
     return <h2>Loading...</h2>;
   }
 
-  if (error) {
-    console.error(error);
+  if (errorTask) {
+    console.error(errorTask);
     return null;
   }
-  if (!data) {
+  if (!taskData) {
     return null;
   }
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = {
+      title,
+      status,
+      description: description.length > 0 ? description : undefined,
+    };
+    createTask({
+      variables: data,
+    });
+    setTitle("");
+    setStatus(STATUS_OPTIONS[0].value);
+    setDescription("");
+  };
 
   return (
     <div className={styles.container}>
@@ -41,7 +98,7 @@ export default function Home() {
         <h1 className={styles.title}>Welcome to the Task Manager</h1>
 
         <h2>Create a task</h2>
-        <div className={styles.createTask}>
+        <form className={styles.card} onSubmit={onSubmit}>
           <div className={styles.inputGroup}>
             <label htmlFor="email" className={styles.label}>
               Title
@@ -50,29 +107,53 @@ export default function Home() {
               type="title"
               name="title"
               id="title"
+              value={title}
+              onChange={(e) => setTitle(e.currentTarget.value)}
               className={styles.input}
               placeholder="Task Title"
             />
           </div>
           <div className={styles.inputGroup}>
-            <label htmlFor="email" className={styles.label}>
+            <label htmlFor="status" className={styles.label}>
+              Status
+            </label>
+            <select
+              className={styles.select}
+              name="status"
+              id="status-select"
+              value={status}
+              onChange={(e) => setStatus(e.currentTarget.value)}
+            >
+              {STATUS_OPTIONS.map((status) => {
+                return (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div className={styles.inputGroup}>
+            <label htmlFor="description" className={styles.label}>
               Description
             </label>
-            <input
-              type="title"
-              name="title"
-              id="title"
-              className={styles.input}
+            <textarea
+              name="description"
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.currentTarget.value)}
+              className={styles.textarea}
               placeholder="Task Description"
             />
           </div>
           <button type="submit">Create Task</button>
-        </div>
+        </form>
         <h2>All tasks</h2>
-        {data.getAllTasks.map((task) => {
+        {taskData.getAllTasks.map((task) => {
           return (
             <div key={task.id} className={styles.card}>
-              <p>Title: {task.title}</p>
+              <h2>Title: {task.title}</h2>
+              <p>{task.id}</p>
               <p>Description: {task.description}</p>
               <p>Status {task.status}</p>
               <button>x</button>
