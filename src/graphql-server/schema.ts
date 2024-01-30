@@ -9,7 +9,7 @@ import {
 import { DateTimeResolver } from "graphql-scalars";
 import { Context } from "./context";
 import path from "path";
-import { Task } from "nexus-prisma";
+import { Task, SubTask } from "nexus-prisma";
 
 export const DateTime = asNexusMethod(DateTimeResolver, "date");
 export const Query = objectType({
@@ -67,6 +67,21 @@ export const Mutation = objectType({
         });
       },
     });
+    t.field("createSubtask", {
+      type: "SubTask",
+      args: {
+        taskId: nonNull(intArg()),
+        body: nonNull(stringArg()),
+      },
+      resolve: (_, args, ctx: Context) => {
+        return ctx.prisma.subTask.create({
+          data: {
+            body: args.body,
+            taskId: args.taskId,
+          },
+        });
+      },
+    });
   },
 });
 
@@ -76,6 +91,16 @@ export const schema = makeSchema({
     Query,
     Mutation,
     objectType({
+      name: SubTask.$name,
+      description: SubTask.$description,
+      definition(t) {
+        t.nonNull.field(SubTask.id);
+        t.nonNull.field(SubTask.body);
+        t.nonNull.field(SubTask.createdAt);
+        t.nonNull.field(SubTask.taskId);
+      },
+    }),
+    objectType({
       name: Task.$name,
       description: Task.$description,
       definition(t) {
@@ -84,6 +109,7 @@ export const schema = makeSchema({
         t.field(Task.description);
         t.nonNull.field(Task.status);
         t.nonNull.field(Task.createdAt);
+        t.nonNull.field(Task.subTasks);
       },
     }),
   ],
