@@ -28,6 +28,14 @@ export const GET_TASK = graphql(`
     }
   }
 `);
+export const DELETE_SUBTASK = graphql(`
+  mutation DeleteSubTask($deleteSubTaskId: String!) {
+    deleteSubTask(id: $deleteSubTaskId) {
+      body
+      id
+    }
+  }
+`);
 
 export default function Task() {
   const [subTask, setSubTask] = useState("");
@@ -43,29 +51,44 @@ export default function Task() {
   } = useQuery(GET_TASK, {
     variables: taskId ? { getTaskId: Number(taskId) } : undefined,
   });
+  const [createSubTask, { loading: subTaskLoading, error: subTaskError }] =
+    useMutation(CREATE_SUBTASK, {
+      refetchQueries: [GET_TASK],
+    });
+
   const [
-    createSubTask,
-    { data: subTaskData, loading: subTaskLoading, error: subTaskError },
-  ] = useMutation(CREATE_SUBTASK, {
+    deleteSubTask,
+    { loading: deleteSubTaskLoading, error: deleteSubTaskError },
+  ] = useMutation(DELETE_SUBTASK, {
     refetchQueries: [GET_TASK],
   });
-
-  if (taskLoading || subTaskLoading) {
+  if (taskLoading || subTaskLoading || deleteSubTaskLoading) {
     return <h2>Loading...</h2>;
   }
 
-  if (taskError || subTaskError) {
+  if (taskError || subTaskError || deleteSubTaskError) {
     if (taskError) {
       console.error(taskError);
-    } else console.error(subTaskError);
+    } else if (subTaskError) {
+      console.error(subTaskError);
+    } else {
+      console.error(deleteSubTaskError);
+    }
     return null;
   }
   if (!taskData) {
     return null;
   }
 
-  const onClick = (id: number) => {
-    console.log(id);
+  const onDelete = (id: string) => {
+    deleteSubTask({
+      variables: {
+        deleteSubTaskId: id,
+      },
+    });
+  };
+
+  const onClick = () => {
     createSubTask({
       variables: {
         taskId: Number(taskId),
@@ -96,15 +119,18 @@ export default function Task() {
             placeholder="Sub Task Text"
           />
 
-          <button onClick={() => onClick(taskData.getTask.id)}>
-            Add sub task
-          </button>
+          <button onClick={onClick}>Add sub task</button>
         </div>
         {taskData.getTask.subTasks.map((subTask) => {
           return (
             <ul className={styles.list} key={subTask.id}>
               <li>{subTask.body}</li>
-              <button className={styles.smCloseButton}>x</button>
+              <button
+                className={styles.smCloseButton}
+                onClick={() => onDelete(subTask.id)}
+              >
+                x
+              </button>
             </ul>
           );
         })}

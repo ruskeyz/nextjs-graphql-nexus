@@ -82,6 +82,19 @@ export const Mutation = objectType({
         });
       },
     });
+    t.field("deleteSubTask", {
+      type: "SubTask",
+      args: {
+        id: nonNull(stringArg()),
+      },
+      resolve: (_, args, ctx: Context) => {
+        return ctx.prisma.subTask.delete({
+          where: {
+            id: args.id,
+          },
+        });
+      },
+    });
   },
 });
 
