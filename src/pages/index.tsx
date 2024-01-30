@@ -25,6 +25,17 @@ const CREATE_TASK = graphql(`
   }
 `);
 
+const DELETE_TASK = graphql(`
+  mutation DeleteTask($deleteTaskId: Int!) {
+    deleteTask(id: $deleteTaskId) {
+      title
+      status
+      id
+      description
+    }
+  }
+`);
+
 const STATUS_OPTIONS = [
   {
     label: "To Do",
@@ -49,28 +60,53 @@ export default function Home() {
     loading: loadingTask,
     error: errorTask,
   } = useQuery(GET_ALL_TASKS);
+
   const [
     createTask,
     {
-      data: deleteTaskData,
-      loading: loadingDeleteTask,
-      error: errorDeleteTask,
+      data: createTaskData,
+      loading: loadingCreateTask,
+      error: errorCreateTask,
     },
   ] = useMutation(CREATE_TASK, {
     refetchQueries: [GET_ALL_TASKS],
   });
 
-  if (loadingTask) {
+  const [
+    deleteTask,
+    {
+      data: deleteTaskData,
+      loading: loadingDeleteTask,
+      error: errorDeleteTask,
+    },
+  ] = useMutation(DELETE_TASK, {
+    refetchQueries: [GET_ALL_TASKS],
+  });
+
+  if (loadingTask || loadingCreateTask || loadingDeleteTask) {
     return <h2>Loading...</h2>;
   }
 
-  if (errorTask) {
-    console.error(errorTask);
+  if (errorTask || errorCreateTask || errorDeleteTask) {
+    if (errorTask) {
+      console.error(errorTask);
+    } else if (errorCreateTask) {
+      console.error(errorCreateTask);
+    } else {
+      console.error(errorDeleteTask);
+    }
+    return <p>Something unexpected has happened. Please reload the page.</p>;
+  }
+  if (!taskData || createTaskData || deleteTaskData) {
     return null;
   }
-  if (!taskData) {
-    return null;
-  }
+
+  const onDelete = (id: number) => {
+    console.log("delete", id);
+    deleteTask({
+      variables: { deleteTaskId: id },
+    });
+  };
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = {
@@ -155,8 +191,13 @@ export default function Home() {
               <h2>Title: {task.title}</h2>
               <p>{task.id}</p>
               <p>Description: {task.description}</p>
-              <p>Status {task.status}</p>
-              <button>x</button>
+              <p>Status: {task.status}</p>
+              <button
+                className={styles.closeButton}
+                onClick={() => onDelete(task.id)}
+              >
+                x
+              </button>
             </div>
           );
         })}
