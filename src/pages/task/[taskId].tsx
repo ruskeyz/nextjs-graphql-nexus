@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { graphql } from "../../gql";
+import { strict } from "assert";
 
 export const CREATE_SUBTASK = graphql(`
   mutation CreateSubtask($taskId: Int!, $body: String!) {
@@ -37,8 +38,38 @@ export const DELETE_SUBTASK = graphql(`
   }
 `);
 
+export const CHANGE_TASK_STATUS = graphql(`
+  mutation ChangeTaskStatus($changeTaskStatusId: Int!, $status: String!) {
+    changeTaskStatus(id: $changeTaskStatusId, status: $status) {
+      description
+      id
+      status
+      title
+      subTasks {
+        body
+      }
+    }
+  }
+`);
+
+const STATUS_OPTIONS = [
+  {
+    label: "To Do",
+    value: "TO_DO",
+  },
+  {
+    label: "In progress",
+    value: "IN_PROGRESS",
+  },
+  {
+    label: "Done",
+    value: "DONE",
+  },
+];
+
 export default function Task() {
   const [subTask, setSubTask] = useState("");
+  //const [status, setStatus] = useState(STATUS_OPTIONS[0].value);
 
   const { query } = useRouter();
   const taskId =
@@ -62,6 +93,14 @@ export default function Task() {
   ] = useMutation(DELETE_SUBTASK, {
     refetchQueries: [GET_TASK],
   });
+
+  const [changeTaskStatus, { loading, error }] = useMutation(
+    CHANGE_TASK_STATUS,
+    {
+      refetchQueries: [GET_TASK],
+    }
+  );
+
   if (taskLoading || subTaskLoading || deleteSubTaskLoading) {
     return <h2>Loading...</h2>;
   }
@@ -97,6 +136,18 @@ export default function Task() {
     });
   };
 
+  const onChangeStatus = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    id: number
+  ) => {
+    console.log(id, e.currentTarget.value);
+    changeTaskStatus({
+      variables: {
+        changeTaskStatusId: id,
+        status: e.currentTarget.value,
+      },
+    });
+  };
   return (
     <div className={styles.container}>
       <Head>
@@ -108,6 +159,23 @@ export default function Task() {
         <h1 className={styles.title}>Task {taskData.getTask.id}</h1>
         <h2 className={styles.description}>{taskData.getTask.title}</h2>
         <p className={styles.description}>{taskData.getTask.description}</p>
+        <p className={styles.description}>{taskData.getTask.status}</p>
+        <select
+          className={styles.select}
+          name="status"
+          id="status-select"
+          value={taskData.getTask.status}
+          onChange={(e) => onChangeStatus(e, taskData.getTask.id)}
+        >
+          {STATUS_OPTIONS.map((status) => {
+            return (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            );
+          })}
+        </select>
+
         <div className={styles.createSubtask}>
           <input
             type="subTask"

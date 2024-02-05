@@ -95,6 +95,24 @@ export const Mutation = objectType({
         });
       },
     });
+    t.field("changeTaskStatus", {
+      type: "Task",
+      args: {
+        id: nonNull(intArg()),
+        status: nonNull(stringArg()),
+      },
+      resolve: async (_, args, ctx: Context) => {
+        const task = await ctx.prisma.task.update({
+          where: {
+            id: args.id,
+          },
+          data: {
+            status: args.status,
+          },
+        });
+        return task;
+      },
+    });
   },
 });
 
